@@ -1,0 +1,824 @@
+<!doctype html>
+<!--
+  社内ヘルプデスクAI - フロントエンド UI
+
+  【重要: ブラウザで開く方法】
+  このファイルをダブルクリック (file:// プロトコル) で開くと、ブラウザの
+  CORS セキュリティ制約で API 呼び出しがブロックされます (Origin が null 扱いに
+  なるため、CORS 許可設定を通過できません)。
+
+  必ず以下のようにローカル HTTP サーバー経由で開いてください:
+
+      cd <このファイルがあるディレクトリ>
+      python3 -m http.server 8000
+
+      # ブラウザで http://localhost:8000/index.html を開く
+      # 停止は Ctrl+C
+-->
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>社内ヘルプデスクAI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #1a2332;
+        --ink-soft: #2d3e52;
+        --indigo: #2e4a7b;
+        --indigo-light: #4a6ea8;
+        --paper: #f5f0e6;
+        --paper-dark: #ebe3d3;
+        --white: #fefcf7;
+        --border: #d4cab5;
+        --accent: #8b4513;
+        --accent-warm: #c17a3a;
+        --success: #5a7a4d;
+        --error: #a44040;
+        --shadow:
+          0 1px 3px rgba(26, 35, 50, 0.08), 0 4px 12px rgba(26, 35, 50, 0.04);
+        --shadow-strong:
+          0 2px 6px rgba(26, 35, 50, 0.12), 0 12px 32px rgba(26, 35, 50, 0.08);
+        --serif: "Noto Serif JP", serif;
+        --sans: "Noto Sans JP", sans-serif;
+        --mono: "JetBrains Mono", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--sans);
+        color: var(--ink);
+        background: var(--paper);
+        background-image:
+          radial-gradient(
+            circle at 20% 10%,
+            rgba(46, 74, 123, 0.04),
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 80% 80%,
+            rgba(139, 69, 19, 0.03),
+            transparent 50%
+          );
+        min-height: 100vh;
+        line-height: 1.6;
+        font-weight: 400;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        min-height: 100vh;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      /* ========== 左サイドバー ========== */
+      .sidebar {
+        background: var(--white);
+        border-right: 1px solid var(--border);
+        padding: 2rem 1.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .brand {
+        border-bottom: 2px solid var(--ink);
+        padding-bottom: 1.25rem;
+      }
+
+      .brand__mark {
+        font-family: var(--serif);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.3em;
+        color: var(--accent);
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+      }
+
+      .brand__title {
+        font-family: var(--serif);
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--ink);
+        line-height: 1.3;
+        letter-spacing: -0.01em;
+      }
+
+      .brand__subtitle {
+        font-size: 0.78rem;
+        color: var(--ink-soft);
+        margin-top: 0.4rem;
+        font-weight: 300;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+
+      .field__label {
+        font-family: var(--serif);
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--ink-soft);
+        letter-spacing: 0.05em;
+      }
+
+      .field__input {
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        padding: 0.6rem 0.75rem;
+        background: var(--paper);
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        color: var(--ink);
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+      }
+
+      .field__input:focus {
+        outline: none;
+        border-color: var(--indigo);
+        background: var(--white);
+      }
+
+      .field__hint {
+        font-size: 0.7rem;
+        color: var(--ink-soft);
+        opacity: 0.7;
+        margin-top: 0.15rem;
+        font-weight: 300;
+      }
+
+      .examples {
+        margin-top: 0.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--border);
+      }
+
+      .examples__title {
+        font-family: var(--serif);
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--ink-soft);
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
+      }
+
+      .examples__list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        list-style: none;
+      }
+
+      .examples__item {
+        font-size: 0.78rem;
+        padding: 0.55rem 0.7rem;
+        background: var(--paper);
+        border: 1px solid transparent;
+        border-left: 2px solid var(--accent-warm);
+        cursor: pointer;
+        color: var(--ink-soft);
+        transition: all 0.15s;
+        text-align: left;
+        width: 100%;
+        font-family: inherit;
+        line-height: 1.5;
+      }
+
+      .examples__item:hover {
+        background: var(--white);
+        border-color: var(--border);
+        border-left-color: var(--accent);
+        color: var(--ink);
+        transform: translateX(2px);
+      }
+
+      .status {
+        margin-top: auto;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.7rem;
+        color: var(--ink-soft);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .status__dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 0 3px rgba(90, 122, 77, 0.15);
+      }
+
+      .status__dot--idle {
+        background: var(--ink-soft);
+        box-shadow: none;
+        opacity: 0.4;
+      }
+      .status__dot--loading {
+        background: var(--accent-warm);
+        animation: pulse 1.2s infinite;
+      }
+      .status__dot--error {
+        background: var(--error);
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.4;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      /* ========== メインチャット画面 ========== */
+      .main {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .main__header {
+        padding: 1.5rem 2.5rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--white);
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+
+      .main__title {
+        font-family: var(--serif);
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      .chat {
+        flex: 1;
+        overflow-y: auto;
+        padding: 2rem 2.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+
+      .chat::-webkit-scrollbar {
+        width: 8px;
+      }
+      .chat::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .chat::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+
+      .message {
+        display: flex;
+        gap: 0.9rem;
+        max-width: 85%;
+        animation: slideUp 0.3s ease-out;
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message--user {
+        align-self: flex-end;
+        flex-direction: row-reverse;
+      }
+
+      .message__avatar {
+        flex-shrink: 0;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--serif);
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0;
+      }
+
+      .message--user .message__avatar {
+        background: var(--ink);
+        color: var(--paper);
+      }
+
+      .message--ai .message__avatar {
+        background: var(--paper-dark);
+        color: var(--ink);
+        border: 1px solid var(--border);
+      }
+
+      .message__body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .message__role {
+        font-family: var(--serif);
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--ink-soft);
+        letter-spacing: 0.05em;
+      }
+
+      .message--user .message__role {
+        text-align: right;
+      }
+
+      .message__content {
+        padding: 0.85rem 1.1rem;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        font-size: 0.9rem;
+        line-height: 1.75;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        box-shadow: var(--shadow);
+      }
+
+      .message--user .message__content {
+        background: var(--ink);
+        color: var(--paper);
+        border-color: var(--ink);
+      }
+
+      .message--error .message__content {
+        background: #fff1f1;
+        border-color: var(--error);
+        color: var(--error);
+      }
+
+      .empty {
+        margin: auto;
+        text-align: center;
+        max-width: 420px;
+        padding: 3rem 2rem;
+      }
+
+      .empty__title {
+        font-family: var(--serif);
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--ink);
+      }
+
+      .empty__text {
+        font-size: 0.85rem;
+        color: var(--ink-soft);
+        line-height: 1.8;
+        font-weight: 300;
+      }
+
+      /* タイピングインジケータ */
+      .typing {
+        display: inline-flex;
+        gap: 4px;
+        padding: 0.4rem 0;
+      }
+
+      .typing span {
+        width: 7px;
+        height: 7px;
+        background: var(--ink-soft);
+        border-radius: 50%;
+        animation: typing 1.3s infinite;
+        opacity: 0.4;
+      }
+
+      .typing span:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .typing span:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+
+      @keyframes typing {
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+          opacity: 0.4;
+        }
+        30% {
+          transform: translateY(-4px);
+          opacity: 1;
+        }
+      }
+
+      /* ========== 入力欄 ========== */
+      .composer {
+        padding: 1.25rem 2.5rem 1.75rem;
+        background: var(--white);
+        border-top: 1px solid var(--border);
+      }
+
+      .composer__form {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-end;
+      }
+
+      .composer__input {
+        flex: 1;
+        padding: 0.85rem 1rem;
+        background: var(--paper);
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        font-family: inherit;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        resize: none;
+        min-height: 48px;
+        max-height: 150px;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+      }
+
+      .composer__input:focus {
+        outline: none;
+        border-color: var(--indigo);
+        background: var(--white);
+      }
+
+      .composer__input::placeholder {
+        color: var(--ink-soft);
+        opacity: 0.55;
+      }
+
+      .composer__submit {
+        padding: 0.85rem 1.6rem;
+        background: var(--ink);
+        color: var(--paper);
+        border: none;
+        border-radius: 2px;
+        font-family: var(--serif);
+        font-size: 0.88rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          transform 0.1s;
+        height: 48px;
+        min-width: 100px;
+      }
+
+      .composer__submit:hover:not(:disabled) {
+        background: var(--indigo);
+      }
+
+      .composer__submit:active:not(:disabled) {
+        transform: translateY(1px);
+      }
+
+      .composer__submit:disabled {
+        background: var(--ink-soft);
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      /* レスポンシブ */
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto 1fr;
+        }
+        .sidebar {
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+          padding: 1.25rem;
+        }
+        .examples {
+          display: none;
+        }
+        .main__header,
+        .chat,
+        .composer {
+          padding-left: 1.25rem;
+          padding-right: 1.25rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand__mark">Internal Helpdesk</div>
+          <h1 class="brand__title">社内ヘルプデスク<br />AI アシスタント</h1>
+          <p class="brand__subtitle">
+            就業規則・申請手続きに関するご質問にお答えします
+          </p>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="endpoint">API エンドポイント</label>
+          <input
+            class="field__input"
+            id="endpoint"
+            type="text"
+            placeholder="https://xxx.execute-api.us-east-1.amazonaws.com/chat"
+          />
+          <div class="field__hint">
+            deploy.sh 実行後に表示される URL を貼り付けてください
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="session">セッション ID</label>
+          <input
+            class="field__input"
+            id="session"
+            type="text"
+            value="demo-001"
+          />
+          <div class="field__hint">会話履歴はこの ID ごとに保存されます</div>
+        </div>
+
+        <div class="examples">
+          <div class="examples__title">質問例</div>
+          <ul class="examples__list" id="examples">
+            <li>
+              <button class="examples__item" data-q="有給休暇は何日取れますか?">
+                有給休暇は何日取れますか?
+              </button>
+            </li>
+            <li>
+              <button
+                class="examples__item"
+                data-q="経費精算の締切まであと何日ですか?"
+              >
+                経費精算の締切まであと何日ですか?
+              </button>
+            </li>
+            <li>
+              <button
+                class="examples__item"
+                data-q="社有車の使用ルールについて教えてください"
+              >
+                社有車の使用ルールについて教えてください
+              </button>
+            </li>
+            <li>
+              <button
+                class="examples__item"
+                data-q="リモートワークは週何日までできますか?"
+              >
+                リモートワークは週何日までできますか?
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <div class="status">
+          <span class="status__dot status__dot--idle" id="statusDot"></span>
+          <span id="statusText">待機中</span>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="main__header">
+          <h2 class="main__title">対話ウィンドウ</h2>
+        </div>
+
+        <div class="chat" id="chat">
+          <div class="empty" id="empty">
+            <div class="empty__title">お気軽にお尋ねください</div>
+            <div class="empty__text">
+              就業規則・経費精算・リモートワーク等の<br />社内手続きに関するご質問にお答えします。<br />まずは左の質問例をお試しください。
+            </div>
+          </div>
+        </div>
+
+        <form class="composer" id="composer">
+          <div class="composer__form">
+            <textarea
+              class="composer__input"
+              id="input"
+              placeholder="質問を入力... (Enter で送信、Shift+Enter で改行)"
+              rows="1"
+            ></textarea>
+            <button class="composer__submit" id="submit" type="submit">
+              送 信
+            </button>
+          </div>
+        </form>
+      </main>
+    </div>
+
+    <script>
+      (() => {
+        const ENDPOINT_KEY = "helpdesk_ai_endpoint";
+
+        const $ = (id) => document.getElementById(id);
+        const chat = $("chat");
+        const empty = $("empty");
+        const input = $("input");
+        const submit = $("submit");
+        const composer = $("composer");
+        const endpointInput = $("endpoint");
+        const sessionInput = $("session");
+        const statusDot = $("statusDot");
+        const statusText = $("statusText");
+        const examples = $("examples");
+
+        // 一度設定したエンドポイントはlocalStorageに保存し、自動で復元する
+        try {
+          const saved = localStorage.getItem(ENDPOINT_KEY);
+          if (saved) endpointInput.value = saved;
+        } catch (e) {
+          /* file://等でlocalStorageが使えない環境は無視 */
+        }
+
+        endpointInput.addEventListener("change", () => {
+          try {
+            localStorage.setItem(ENDPOINT_KEY, endpointInput.value.trim());
+          } catch (e) {}
+        });
+
+        function setStatus(mode, text) {
+          statusDot.className = "status__dot status__dot--" + mode;
+          statusText.textContent = text;
+        }
+        setStatus("idle", "待機中");
+
+        // チャット欄にメッセージを追加する関数
+        function appendMessage(role, content, opts = {}) {
+          if (!empty.classList.contains("hidden")) {
+            // 「お気軽にお尋ねください」のメッセージを非表示にする
+            empty.style.display = "none";
+            empty.classList.add("hidden");
+          }
+
+          // メッセージの要素を作成する
+          const el = document.createElement("div");
+          el.className =
+            "message message--" + role + (opts.error ? " message--error" : "");
+          const avatar = role === "user" ? "User" : "AI";
+          const roleLabel = role === "user" ? "あなた" : "AI アシスタント";
+          el.innerHTML = `
+      <div class="message__avatar">${avatar}</div>
+      <div class="message__body">
+        <div class="message__role">${roleLabel}</div>
+        <div class="message__content"></div>
+      </div>
+    `;
+          el.querySelector(".message__content").textContent = content;
+          chat.appendChild(el);
+          chat.scrollTop = chat.scrollHeight;
+          return el;
+        }
+
+        // AI応答中のタイピングインジケータを追加する関数
+        function appendTyping() {
+          // AI応答中のタイピングインジケータの要素を作成する
+          const el = document.createElement("div");
+          el.className = "message message--ai";
+          el.id = "typingIndicator";
+          el.innerHTML = `
+      <div class="message__avatar">AI</div>
+      <div class="message__body">
+        <div class="message__role">AI アシスタント</div>
+        <div class="message__content">
+          <div class="typing"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    `;
+          chat.appendChild(el);
+          chat.scrollTop = chat.scrollHeight;
+          return el;
+        }
+
+        async function sendMessage(message) {
+          const endpoint = endpointInput.value.trim();
+          const sessionId = sessionInput.value.trim() || "demo-001";
+
+          if (!endpoint) {
+            appendMessage("ai", "API エンドポイントを設定してください。", {
+              error: true,
+            });
+            return;
+          }
+
+          appendMessage("user", message);
+          const typing = appendTyping();
+          setStatus("loading", "応答生成中...");
+          submit.disabled = true;
+
+          try {
+            const res = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ session_id: sessionId, message }),
+            });
+            typing.remove();
+
+            if (!res.ok) {
+              const text = await res.text();
+              appendMessage("ai", `エラー (HTTP ${res.status}): ${text}`, {
+                error: true,
+              });
+              setStatus("error", `HTTP ${res.status}`);
+              return;
+            }
+
+            const data = await res.json();
+            appendMessage("ai", data.reply || "(応答が空でした)");
+            setStatus("idle", "待機中");
+          } catch (err) {
+            typing.remove();
+            // file:// で開くと Origin=null になり CORS を通過できない (Failed to fetch)
+            const isFileProto = location.protocol === "file:";
+            let hint;
+            if (isFileProto) {
+              hint =
+                "\n\nこの HTML を file:// で開いているとブラウザの CORS 制約で API を呼び出せません。\n次のようにローカル HTTP サーバー経由で開いてください:\n\n  cd <index.html があるディレクトリ>\n  python3 -m http.server 8000\n\n  → ブラウザで http://localhost:8000/index.html を開く";
+            } else {
+              hint = "\n\nCORS 設定を確認してください。";
+            }
+            appendMessage("ai", `通信エラー: ${err.message}${hint}`, {
+              error: true,
+            });
+            setStatus("error", "通信エラー");
+          } finally {
+            submit.disabled = false;
+            input.focus();
+          }
+        }
+
+        composer.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const msg = input.value.trim();
+          if (!msg) return;
+          input.value = "";
+          input.style.height = "auto";
+          sendMessage(msg);
+        });
+
+        // Enterで送信、Shift+Enterで改行
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            composer.requestSubmit();
+          }
+        });
+
+        // 自動高さ調整
+        input.addEventListener("input", () => {
+          input.style.height = "auto";
+          input.style.height = Math.min(input.scrollHeight, 150) + "px";
+        });
+
+        // 質問例クリックで即送信
+        examples.addEventListener("click", (e) => {
+          const btn = e.target.closest(".examples__item");
+          if (!btn) return;
+          const q = btn.dataset.q;
+          input.value = q;
+          composer.requestSubmit();
+        });
+
+        input.focus();
+      })();
+    </script>
+  </body>
+</html>
