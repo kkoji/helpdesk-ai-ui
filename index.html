@@ -795,8 +795,14 @@
         });
 
         // Enterで送信、Shift+Enterで改行
+        // ただしIME変換確定中(isComposing)のEnterは送信しない
         input.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
+          if (
+            e.key === "Enter" &&
+            !e.shiftKey &&
+            !e.isComposing &&
+            e.keyCode !== 229
+          ) {
             e.preventDefault();
             composer.requestSubmit();
           }
